@@ -1,8 +1,7 @@
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Polygon;
-import java.awt.Shape;
+package GaugeMeters;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
@@ -10,15 +9,13 @@ import java.text.NumberFormat;
 import java.util.Date;
 import java.util.Locale;
 
-import javax.swing.JPanel;
-
 /**
  * This class implements a <code>Speedometer</code> view by implementing the
- * <code>ISpeedView</code> interface.
+ * <code>GaugeMeters.ISpeedView</code> interface.
  *
  * @author Clemens Krainer
  */
-public class GaugeMaster extends JPanel implements ISpeedView
+public class GaugeMaster4 extends JPanel implements ISpeedView
 {
     private static final long serialVersionUID = -4076648741571762140L;
 
@@ -90,7 +87,7 @@ public class GaugeMaster extends JPanel implements ISpeedView
     /**
      * Construct a <code>Speedometer</code>.
      */
-    public GaugeMaster()
+    public GaugeMaster4()
     {
 
         setSize (size, size);
@@ -133,7 +130,7 @@ public class GaugeMaster extends JPanel implements ISpeedView
     }
 
     /* (non-Javadoc)
-     * @see at.uni_salzburg.cs.ckgroup.ui.ISpeedView#setSpeed(java.util.Date, double)
+     * @see at.uni_salzburg.cs.ckgroup.ui.GaugeMeters.ISpeedView#setSpeed(java.util.Date, double)
      */
     boolean lastSpeedIsZero = false;
     public void setSpeed (Date date, double currentSpeed)
@@ -147,7 +144,7 @@ public class GaugeMaster extends JPanel implements ISpeedView
         nf.setMinimumIntegerDigits(1);
         String h1 = this.speed < 10 ? " " : "";
         String h2 = currentSpeed < 10 ? " " : "";
-        this.speedString = h1 + nf.format(this.speed) + "m/s = "+ h2 + nf.format(currentSpeed) +"km/h";
+        this.speedString =  h2 + nf.format(currentSpeed) +"";
 //		this.speedString = String.format ("%5.2fm/s = %5.2fkm/h", new Object[] {new Double (speed),new Double (currentSpeed)});
 //        if (currentSpeed == 0 && !lastSpeedIsZero){
 //            lastSpeedIsZero = true;
@@ -167,10 +164,10 @@ public class GaugeMaster extends JPanel implements ISpeedView
         Graphics2D ga = (Graphics2D)g;
 
         ga.setColor (Color.white);
-        ga.fillRect (0, 0, size-1, size-1);
+        ga.fillRect (0, 0, 200, 200);
         ga.setColor (Color.black);
-        ga.drawRect (0, 0, size-1, size-1); // draw border
-        ga.drawString ("Speed", 5, 15);
+        ga.drawRect (0, 0, 200, 200); // draw border
+        ga.drawString ("Pressure", 5, 15);
 
         if (speedString != null)
             ga.drawString (speedString, 5, size-5);
