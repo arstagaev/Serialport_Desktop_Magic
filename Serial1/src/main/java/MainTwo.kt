@@ -5,10 +5,13 @@ import GaugeMeters.GaugeMaster4
 import com.fazecast.jSerialComm.SerialPort
 import com.fazecast.jSerialComm.SerialPortDataListener
 import com.fazecast.jSerialComm.SerialPortEvent
+import tools.filterKalman
 import tools.onesAndTens
 import java.awt.Color
 import java.awt.Font
 import java.awt.event.ActionListener
+import java.awt.event.WindowEvent
+import java.awt.event.WindowListener
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -18,9 +21,15 @@ import javax.sound.sampled.UnsupportedAudioFileException
 import javax.swing.*
 import kotlin.concurrent.fixedRateTimer
 
+/**
+ * @author >> ars.tagaev
+ *
+ */
 
 //import com.fazecast.jSerialComm.*;
 object MainTwo : JFrame() {
+
+    val serialPort: SerialPort = SerialPort.getCommPort("COM3")
 
     var gm1 = GaugeMaster()
     var gm2 = GaugeMaster2()
@@ -36,16 +45,20 @@ object MainTwo : JFrame() {
     var asdx = arrayListOf<Int>(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,33,34,34,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
     var asdx2 = arrayListOf<Int>(1,2,3,15,16,17,18,19,26,27,28,29,30,31,32,33,34,6,7,8,9,10,11,12,13,14,15,16)
 
+    var isAllWork = false
 
+    var z = 0L
+    var y = 0L
 
+    private lateinit var newData : ByteArray
 
     @OptIn(ExperimentalUnsignedTypes::class)
     @JvmStatic
     fun main(args: Array<String>) {
+
         val window = JFrame()
         window.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE;
         window.setSize(1000, 1000)
-        // выход при закрытии окна
 
 
         // определение многослойной панели
@@ -119,20 +132,104 @@ object MainTwo : JFrame() {
 //        window.add(l2)
         window.isVisible = true
 
-        val serialPort = SerialPort.getCommPort("COM3")
+
         //        if(serialPort.openPort())
 //            System.out.println("Port opened successfully.");
 //        else {
 //            System.out.println("Unable to open the port.");
 //            return;
 //        }
-        sound()
+        sound(0)
+        initSerialCommunication()
+        isAllWork = true
+        //serialPort.removeDataListener()
+        // Here is looper-checker
+
+
+
+
+        window.addWindowListener(object : WindowListener{
+            override fun windowOpened(e: WindowEvent?) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun windowClosing(e: WindowEvent?) {
+               //TODO("Not yet implemented")
+            }
+
+            override fun windowClosed(e: WindowEvent?) {
+                stopSerialCommunication()
+                //TODO("Not yet implemented")
+            }
+
+            override fun windowIconified(e: WindowEvent?) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun windowDeiconified(e: WindowEvent?) {
+                //TODO("Not yet implemented")
+            }
+
+            override fun windowActivated(e: WindowEvent?) {
+               // TODO("Not yet implemented")
+            }
+
+            override fun windowDeactivated(e: WindowEvent?) {
+               // TODO("Not yet implemented")
+            }
+
+        })
+
+        fixedRateTimer("timer", false, 5000L,3000) {
+            if (!serialPort.isOpen){
+                sound(-1)
+                sound(-1)
+                sound(-1)
+
+                println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ stopped!")
+                stopSerialCommunication()
+                initSerialCommunication()
+            }
+            if (newData.size != 16){
+                println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ by size stopped!")
+                stopSerialCommunication()
+                initSerialCommunication()
+                return@fixedRateTimer
+            }
+
+            println("qqqq z: ${z} y:${y}")
+
+
+            if (z > y){
+                y = z
+
+            }else if (z == y){
+                sound(-1)
+                sound(-1)
+                sound(-1)
+                sound(-1)
+                sound(-1)
+                sound(-1)
+
+                println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ z ~ y stopped!")
+                stopSerialCommunication()
+                initSerialCommunication()
+
+            }
+
+        }
+
+    }
+
+
+
+    private fun initSerialCommunication() {
+        println(">>>serial communication has been started")
         serialPort.baudRate = 115200
         serialPort.setComPortParameters(115200, 8, 1, SerialPort.NO_PARITY)
         serialPort.setComPortTimeouts(SerialPort.TIMEOUT_SCANNER, 0, 0)
         serialPort.openPort()
 
-        println("Lets start!")
         var a = 0
         val bb = byteArrayOf(0x74.toByte(), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
         try {
@@ -152,6 +249,7 @@ object MainTwo : JFrame() {
 //            }
             a++
         }
+
         serialPort.addDataListener(object : SerialPortDataListener {
             override fun getListeningEvents(): Int {
                 return SerialPort.LISTENING_EVENT_DATA_AVAILABLE
@@ -159,21 +257,17 @@ object MainTwo : JFrame() {
 
             override fun serialEvent(event: SerialPortEvent) {
                 if (event.eventType != SerialPort.LISTENING_EVENT_DATA_AVAILABLE) {
+                    sound(-1)
                     return
                 }
-                val newData = ByteArray(serialPort.bytesAvailable())
+                newData = ByteArray(serialPort.bytesAvailable())
                 val numRead = serialPort.readBytes(newData, newData.size.toLong())
                 //var nnn = uintArrayOf(newData)
                 //nnn =
-                if (newData[1].toUInt() == 0u) {
-                    l2.text = "~" + newData[0].toUByte()
-                } else {
-                    val output = newData[0].toUByte() + newData[1].toUByte() * 255u
-                    l2.text = "" + output
-                }
-                println("conv " + (newData.toUByteArray()).joinToString())
+
+                println("conv " + (newData.toUByteArray()).joinToString() + "[[ ${newData.size}")
                 //curPoint =
-                firstAnalog( onesAndTens(newData[0],newData[1]))
+                firstAnalog( filterKalman( onesAndTens(newData[0],newData[1])))
                 secondAnalog(onesAndTens(newData[2],newData[3]))
                 thirdAnalog( onesAndTens(newData[4],newData[5]))
                 fourthAnalog(onesAndTens(newData[6],newData[7]))
@@ -182,16 +276,33 @@ object MainTwo : JFrame() {
                 sixAnalog(  onesAndTens(newData[10],newData[11]))
                 sevenAnalog(onesAndTens(newData[12],newData[13]))
                 eightAnalog(onesAndTens(newData[14],newData[15]))
+                z++
             }
         })
-
     }
 
-    fun sound() {
-        try {
-            val soundFile = File("src/main/resources/autopilot_on.wav") //Звуковой файл
+    fun stopSerialCommunication(){
+        serialPort.removeDataListener()
+        serialPort.closePort()
+    }
 
-            println(" >>>>>> ${soundFile.absolutePath}")
+    fun sound(typeOfSound : Int) {
+        try {
+            var soundFile = File("src/main/resources/autopilot_on.wav") //Звуковой файл
+            when(typeOfSound){
+                0 -> {
+                    soundFile = File("src/main/resources/autopilot_on.wav") //Звуковой файл
+                }
+                -1 -> {
+                    soundFile = File("src/main/resources/error.wav") //Звуковой файл
+                }
+                else -> {
+                    soundFile = File("src/main/resources/autopilot_on.wav") //Звуковой файл
+                }
+            }
+
+
+            //println(" >>>>>> ${soundFile.absolutePath}")
             //Получаем AudioInputStream
             //Вот тут могут полететь IOException и UnsupportedAudioFileException
             val ais = AudioSystem.getAudioInputStream(soundFile)
@@ -259,6 +370,8 @@ object MainTwo : JFrame() {
     var lastNum8 = 0.0
 
     private fun firstAnalog(inputP : Double){
+        gm1.setSpeed(Date(),inputP)
+        return
         if (SMOOTH_SHOW){
 
 
@@ -441,7 +554,7 @@ object MainTwo : JFrame() {
             gm8.setSpeed(Date(),inputP) //
         }
     }
-
+    // Just for demo presentation, non-useful
     private fun launchDemo() {
 
 //        fixedRateTimer("timer", true, 100L, 40) {
@@ -503,26 +616,6 @@ object MainTwo : JFrame() {
         println("new ${t}")
     }
 
-    var lastN = 0.0
-    var ready = 0.0
-//    fun acc(speedIdeal : Double){
-//        ready = lastN
-//        var tim = fixedRateTimer("timer", true, 100L, 10) {
-//            //spmeter.setSpeed(Date(),25.0*(0..5).random())
-//
-//            if (ready == speedIdeal){
-//                lastN = speedIdeal
-//                this.cancel()
-//            }else{
-//
-//                gm1.setSpeed(Date(), ready)
-//
-//            }
-//            ready++
-//            println("~~~ ${lastN} ${ready}  ${speedIdeal}")
-//
-//
-//        }
-//    }
+
 
 }
